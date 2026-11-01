@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f3">
+  <meta name="description" content="Explore hypothetical Turkish lira deposit returns with maturity-only compounding, withholding tax, FX spreads, and shareable scenarios. No live bank rates.">
+  <title>TRY Deposit Simulator — Understand your lira returns</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#outcome">Skip to results</a>
+<header class="site-header"><a class="brand" href="/" aria-label="TRY Deposit Simulator home"><span class="brand-icon">₺</span><span>TRY<span class="brand-light"> / deposit simulator</span></span></a><span class="private-note"><span class="status-dot"></span>Calculated in your browser</span></header>
+<main>
+  <section class="intro"><div><p class="eyebrow">THE INTEREST. THE CURRENCY. THE FULL PICTURE.</p><h1>Put your lira returns<br>in perspective.</h1><p class="intro-copy">Explore what a TRY deposit could be worth in dollars.<br class="desktop-only"> Adjust the assumptions. See where interest meets exchange rates.</p></div><div class="model-badge"><span class="badge-symbol">↗</span><div><strong>A scenario, not a forecast.</strong><p>All rates and FX quotes are illustrative. <br>No live bank data or promised returns.</p></div></div></section>
+  <noscript><p class="notice">Enable JavaScript to calculate scenarios. This website runs the model locally in your browser.</p></noscript>
+  <div id="urlWarning" class="notice" role="status" hidden></div>
+  <div class="workspace">
+    <aside class="panel assumptions" aria-labelledby="assumptions-title">
+      <div class="panel-heading"><h2 id="assumptions-title">Your assumptions</h2><span class="step-label">01 / INPUTS</span></div>
+      <form id="assumptions" novalidate>
+        <div id="inputErrors" class="error-box" role="alert" hidden></div>
+        <div class="form-section"><h3>Starting point</h3>
+          <div class="capital-field"><div class="field"><label for="capital">Starting capital</label><input id="capital" type="number" min="0" max="1000000000000" step="any" value="20000" inputmode="decimal" aria-describedby="capital-help capital-error"><small id="capital-error" class="field-error"></small></div><div class="field currency-field"><label for="currency">Currency</label><select id="currency"><option>USD</option><option>TRY</option></select></div></div>
+          <p id="capital-help" class="help">USD is converted to TRY at the bank’s buying quote.</p>
+          <div class="field"><label for="days">Holding period <span>days</span></label><input id="days" type="number" min="0" max="3650" step="1" value="365" inputmode="numeric" aria-describedby="days-error"><small id="days-error" class="field-error"></small></div>
+          <div class="presets" aria-label="Holding period presets"><button type="button" data-days="32">32 days</button><button type="button" data-days="96">96 days</button><button type="button" data-days="365">1 year</button></div>
+        </div>
+        <div class="form-section"><h3>Deposit terms</h3><div class="controls">
+          <div class="field"><label for="rate">Gross annual rate <span>%</span></label><input id="rate" type="number" min="0" max="200" step="any" value="36" inputmode="decimal" aria-describedby="rate-error"><small id="rate-error" class="field-error"></small></div>
+          <div class="field"><label for="tax">Withholding tax <span>%</span></label><input id="tax" type="number" min="0" max="100" step="any" value="17.5" inputmode="decimal" aria-describedby="tax-help tax-error"><small id="tax-error" class="field-error"></small></div>
+          <div class="field full"><label for="term">Deposit term <span>days</span></label><select id="term"><option value="32">32 days</option><option value="46">46 days</option><option value="92">92 days</option><option value="181">181 days</option></select></div>
+        </div><p id="tax-help" class="help">Tax is an editable assumption. Confirm the applicable rate for your account and term.</p></div>
+        <div class="form-section"><h3>Currency assumptions</h3>
+          <div class="field"><label for="depr">Annual USD/TRY increase <span>%</span></label><input id="depr" type="number" min="-90" max="300" step="any" value="18" inputmode="decimal" aria-describedby="depr-help depr-error"><small id="depr-error" class="field-error"></small></div><p id="depr-help" class="help">Positive means a weaker lira; negative means a stronger lira. FX changes gradually over time.</p>
+          <div class="controls"><div class="field"><label for="bid">Bank buys USD <span>₺</span></label><input id="bid" type="number" min="0.0001" max="1000000" step="any" value="49.0975" inputmode="decimal" aria-describedby="bid-error"><small id="bid-error" class="field-error"></small></div><div class="field"><label for="ask">Bank sells USD <span>₺</span></label><input id="ask" type="number" min="0.0001" max="1000000" step="any" value="50.7975" inputmode="decimal" aria-describedby="ask-error"><small id="ask-error" class="field-error"></small></div></div>
+          <p class="help">The buy/sell quotes already include the FX spread. The exit selling quote scales with the FX assumption.</p>
+        </div>
+        <details class="advanced"><summary>Renewals & promotions<span aria-hidden="true">+</span></summary><div class="advanced-body">
+          <div class="field"><label for="rateMode">Rate at each renewal</label><select id="rateMode"><option value="fixed">Keep the same rate</option><option value="declining">Transition over the first year</option></select></div>
+          <div id="endRateWrap" class="field" hidden><label for="endRate">Annual rate reached after day 365 <span>%</span></label><input id="endRate" type="number" min="0" max="200" step="any" value="28" aria-describedby="endRate-error"><small id="endRate-error" class="field-error"></small><p class="help">A linear rate path sampled at each term’s start. The rate stays locked until that term matures.</p></div>
+          <label class="checkbox"><input id="promo" type="checkbox">Apply an introductory promotion</label>
+          <div id="promoFields" hidden><div class="controls"><div class="field"><label for="promoRate">Promo annual rate <span>%</span></label><input id="promoRate" type="number" min="0" max="200" step="any" value="44" aria-describedby="promoRate-error"><small id="promoRate-error" class="field-error"></small></div><div class="field"><label for="promoTerms">Promo terms</label><input id="promoTerms" type="number" min="1" max="120" step="1" value="3" aria-describedby="promoTerms-error"><small id="promoTerms-error" class="field-error"></small></div><div class="field full"><label for="excluded">Non-interest-bearing amount <span>TRY</span></label><input id="excluded" type="number" min="0" max="1000000000000" step="any" value="75000" aria-describedby="excluded-error"><small id="excluded-error" class="field-error"></small></div></div><p class="help">This amount stays in your balance but earns no interest during the promo terms. Normal eligibility resumes afterwards. A hypothetical promotion, not a bank offer.</p></div>
+        </div></details>
+        <div class="form-actions"><a href="#outcome" class="button secondary mobile-results-link">View results ↓</a><button type="button" id="share" class="button primary">Copy scenario link <span aria-hidden="true">↗</span></button><button type="button" id="reset" class="text-button">Reset assumptions</button></div>
+        <p id="copyStatus" class="help live-status" role="status"></p>
+      </form>
+    </aside>
+    <div class="results-column" id="outcome" tabindex="-1">
+      <div id="invalidResults" class="panel invalid-results" hidden><h2>Check your assumptions</h2><p>Correct the highlighted fields to calculate a valid scenario.</p></div>
+      <div id="results">
+        <section class="panel outcome-panel" aria-labelledby="outcome-title"><div class="panel-heading"><h2 id="outcome-title">Your scenario at a glance</h2><span id="periodTag" class="pill">365 DAYS</span></div>
+          <div class="headline-results"><div><p class="metric-label">Final USD value</p><output id="finalUsd" class="hero-number">—</output><p class="help">After tax and currency conversion</p></div><div class="return-block"><p class="metric-label">USD profit / loss</p><output id="profit" class="profit-number">—</output><p id="roi" class="return-chip"></p></div></div>
+          <div class="chart-title"><h3>Your money over time</h3><span>USD liquidation value</span></div><svg id="chart" viewBox="0 0 660 270" role="img" aria-labelledby="chartTitle chartDescription"></svg><div class="chart-legend"><span><i class="line-key"></i>Deposit value</span><span><i class="line-key baseline"></i>Starting USD benchmark</span></div><p class="help chart-note">Interest arrives only at maturity. Between maturities, the USD value moves with FX.</p>
+          <div class="mini-metrics"><div><span>Completed terms</span><strong id="cycles">—</strong></div><div><span>Unpaid days</span><strong id="remainder">—</strong></div><div><span>Break-even annual FX rise</span><strong id="breakeven">—</strong></div></div>
+          <p id="exitNote" class="help"></p>
+        </section>
+        <div class="detail-grid">
+          <section class="panel breakdown-panel"><div class="panel-heading"><h2>Follow the money</h2><span class="step-label">TRY → USD</span></div><dl id="breakdown" class="breakdown"></dl></section>
+          <section class="panel sensitivity-panel"><div class="panel-heading"><h2>What if FX changes?</h2></div><p class="help">Same deposit, different annual USD/TRY increases. Select a row to explore it.</p><div class="table-scroll"><table><caption class="sr-only">Depreciation scenario comparison</caption><thead><tr><th scope="col">FX increase</th><th scope="col">Final USD</th><th scope="col">Return</th></tr></thead><tbody id="scenarios"></tbody></table></div><p class="help">Higher USD/TRY means each lira buys fewer dollars.</p></section>
+        </div>
+      </div>
+      <section class="validation-card"><span class="check-icon" aria-hidden="true">✓</span><div><h2>A transparent calculation</h2><p>1,000,000 TL × 36% × 32 / 365 × (1 − 17.5%)<br><strong>= 26,038.36 TL net interest</strong></p><button id="example" class="text-button" type="button">Load this example <span aria-hidden="true">↗</span></button></div></section>
+    </div>
+  </div>
+  <section class="panel ledger-panel" id="ledgerPanel" aria-labelledby="ledger-title"><div class="panel-heading"><div><p class="eyebrow">EVERY MATURITY, ACCOUNTED FOR</p><h2 id="ledger-title">Your deposit ledger</h2></div><button id="csv" type="button" class="button secondary"><span aria-hidden="true">↓</span> Download CSV</button></div><p class="help">Interest and tax below apply only to completed terms. Calculations retain full precision; amounts are displayed to two decimals.</p><div class="table-scroll ledger-scroll" tabindex="0" role="region" aria-label="Scrollable deposit ledger"><table><caption class="sr-only">Deposit events including opening, each maturity, and exit</caption><thead><tr><th scope="col">Event / day</th><th scope="col">Gross rate</th><th scope="col">Eligible TRY</th><th scope="col">Gross interest</th><th scope="col">Tax withheld</th><th scope="col">Net interest</th><th scope="col">TRY balance</th></tr></thead><tbody id="ledger"></tbody></table></div></section>
+  <section class="methodology" aria-labelledby="method-title"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="method-title">Understand the assumptions.</h2><p>An educational calculator for exploring possibilities. Scenarios are hypothetical, not forecasts or investment advice.</p></div><div class="method-details"><details><summary>How interest and FX are calculated</summary><p>Gross interest = eligible TRY principal × annual gross rate × actual term days / 365. Withholding is deducted from interest, and only net interest is reinvested at maturity. The denominator stays 365, including in leap years.</p><p>Exit USD selling quote = initial selling quote × (1 + annual USD/TRY increase / 100)<sup>elapsed days / 365</sup>. Final USD = final TRY / exit selling quote. The buy/sell quotes capture entry and exit spreads; no extra spread is deducted.</p><p>For starting TRY, no entry conversion occurs. The USD benchmark is its immediate conversion value at the initial bank selling quote. Break-even is the annual FX increase that leaves final USD equal to the starting USD benchmark. It is undefined for zero capital or a zero-day horizon.</p></details><details><summary>What happens at renewal or early withdrawal?</summary><p>The rate is locked when each term begins. The optional rate transition interpolates from the initial rate toward the year-end rate over the first 365 elapsed days, then holds there. Promotional terms override that schedule; when they end, the schedule resumes at the actual renewal day.</p><p>An unfinished term earns zero interest in this model. Previously paid interest is retained. The active deposit is broken at exit, with no additional penalty. Actual bank rules may differ. The promotional excluded amount remains accessible cash within the total balance and becomes interest-eligible when the promotion ends.</p></details><details><summary>Model limits, tax, and privacy</summary><p>No live rates are fetched. Replace illustrative quotes, interest rates, and the 17.5% withholding assumption with the values that apply to your account. Tax can vary by account type, opening or renewal date, and maturity.</p><p>The model excludes transfer fees, additional personal taxes, changing proportional FX spreads, tiered balances, bank-specific rounding, holidays, and renewal delays. It assumes immediate reinvestment, fixed term length, and a constant withholding rate. It does not model inflation, default risk, or alternative USD interest earnings.</p><p>Inputs are calculated in your browser. Sharing places all assumptions in the URL, so anyone with the link can read them; URLs may also appear in browser history and hosting logs. No analytics or external fonts are used.</p></details></div></section>
+  <footer><a class="brand" href="/"><span class="brand-icon small">₺</span><span>TRY Deposit Simulator</span></a><p>Explore the numbers. Make an informed decision.</p><span>ACTUAL DAYS / 365</span></footer>
+</main>
+</body>
+</html>
