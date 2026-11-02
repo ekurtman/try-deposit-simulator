@@ -1,6 +1,6 @@
 # TRY Deposit Simulator
 
-A responsive, dependency-free static calculator for hypothetical Turkish lira deposits and their USD liquidation value. All default rates and FX quotes are illustrative, not live banking data or forecasts.
+A responsive static calculator with a small read-only bank-source API for hypothetical Turkish lira deposits and their USD liquidation value. Manual defaults are illustrative. Select a supported bank to apply its published deposit rate and USD quotes. Future returns remain hypothetical.
 
 ## Run locally
 
@@ -55,22 +55,24 @@ See [audit/CALCULATIONS.md](audit/CALCULATIONS.md) for the source review and ass
 
 CSV includes all assumptions, gross interest, withholding, net interest, opening/maturity balances, FX liquidation values, and an explicit exit row. Unpaid days remain visible even when the final term is incomplete.
 
-All calculations run locally. Shared assumptions are visible to anyone with the URL and can appear in browser history and hosting logs. There is no analytics, tracking SDK, third-party font, database, or server-side financial API.
+All calculations run locally. Shared assumptions are visible to anyone with the URL and can appear in browser history and hosting logs. The read-only bank-source API fetches public pages without sending scenario inputs or credentials to banks. There is no analytics, tracking SDK, third-party font, or database.
 
 ## Deployment
 
-`vercel.json` selects a static architecture, runs `npm run build`, and publishes only `dist/`. That build runs the financial test suite and fails before publication if a test fails. GitHub Actions also runs the full financial and browser suite on pushes to main and pull requests.
+`vercel.json` serves the static UI from `dist/` and a Node function at `/api/bank-rates`. It runs `npm run build`. That build runs the financial test suite and fails before publication if a test fails. GitHub Actions also runs the full financial and browser suite on pushes to main and pull requests.
 
 ```sh
 npx vercel --prod
 ```
 
-Production security headers restrict scripts/assets to this origin, disable framing, and disable camera, microphone, and geolocation. Only the five files in `public/` are copied into the deployed output. Source, tests, and the original attachment remain outside the public site.
+Production security headers restrict scripts/assets to this origin, disable framing, and disable camera, microphone, and geolocation. Only the files in `public/` are copied into the static output; the bank API and its parser dependency execute server-side. Source, tests, and the original attachment remain outside the public site.
 
 ## Structure
 
 - `public/model.js` — pure, shared calculation, validation, scenario, chart-series, and CSV functions.
 - `public/app.js` — DOM interactions and SVG chart rendering.
+- `public/banks.js`, `public/bank-ui.js` — scenario ranking and bank selection.
+- `api/bank-rates.js`, `server/bank-sources.js` — read-only official-source fetching and parsing.
 - `public/index.html`, `public/styles.css`, `public/favicon.svg` — static UI.
 - `tests/` — Node unit/regression tests and Playwright browser tests.
 - `audit/original/` — unmodified contents of the supplied archive, retained for comparison only.
@@ -79,3 +81,15 @@ Production security headers restrict scripts/assets to this origin, disable fram
 ## Limits
 
 This is an educational scenario tool, not financial advice or a bank quotation. Confirm your account's withholding rate and promotion rules. Tax is not automatically inferred from term length or date. The model excludes additional taxes, fees, inflation, default risk, changing proportional FX spreads, tiered balances, holiday/renewal delays, bank-specific rounding, and USD alternative-investment interest. Mobile verification uses browser/device emulation, not physical devices.
+
+## Published bank snapshots
+
+Supported sources: Enpara, Türkiye İş Bankası (İşCep), DenizBank (internet/mobile), and Ziraat (internet branch). Source links and eligibility notes are included per bank in the UI. Only publicly accessible official bank data is used; no login, reverse proxy for authenticated APIs, search snippets, or invented fallback quotes.
+
+The API fetches eight fixed allowlisted endpoints concurrently, with 10-second timeouts, response-size limits, strict parsing and partial-failure handling. Successful and unavailable results are cached in memory for five minutes per warm function instance. Concurrent requests share one fetch. HTTP responses use no-store; expired snapshots are not ranked or selectable. Refresh can return the current server cache. A source failure does not reuse stale quotes. The service requires no secrets and does not accept upstream URLs or scenario inputs.
+
+Fetch time is displayed separately from quote freshness: the banks do not provide a reliably verified quote-update time through these sources, so `sourceUpdatedAt` remains null. Published quotes are indicative and may be delayed or differ from executable, personalized or out-of-hours prices. Source HTML changes can make an individual bank unavailable until its parser is updated.
+
+Ranking uses final USD proceeds for the selected capital, term, holding period, withholding and geometric FX assumption. It assumes each bank's initial eligible balance tier and gross rate remain fixed across renewals, with promotions off. It does not predict future bank rates or tier changes. Monetary tier eligibility rounds the starting TRY amount to cents; financial accrual retains full precision. Exact published tier bounds are respected, including gaps; ambiguous or unsupported offers are excluded. Ties at displayed cents share a rank. Starting TRY does not incur an entry spread. Spread percentage is the immediate USD→TRY→USD loss, `1 - bid / ask`, not a midpoint spread.
+
+Selecting a bank snapshots its rate and quotes into the calculator and disables hypothetical promotions/declining renewal paths. Editing inputs clears the selection; refreshing data does not overwrite calculator assumptions. Shared URLs and CSV preserve numeric assumptions, not a guarantee of bank eligibility or future live values. Tests use small historical source extracts; they are not fallback live data. Browser tests mock the bank API for repeatability; production API smoke checks separately verify real source access.

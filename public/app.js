@@ -1,3 +1,4 @@
+import { initBanks } from './bank-ui.js';
 import { defaults, rules, validate, simulate, chartSeries, parseScenario, scenarioUrl, ledgerCsv } from './model.js';
 const el = id => document.getElementById(id);
 const money = (n, sign = false) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', signDisplay: sign ? 'exceptZero' : 'auto' }).format(n);
@@ -5,7 +6,7 @@ const tl = n => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maxim
 const fx = n => new Intl.NumberFormat('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(n);
 const pct = n => n === null ? 'N/A' : `${n > 0 ? '+' : ''}${n.toFixed(2)}%`;
 const ids = Object.keys(defaults);
-let current, outcome;
+let current, outcome, banks;
 function setInputs(p) {
   for (const key of ids) {
     // Older shared URLs can contain other valid integer term lengths.
@@ -79,7 +80,7 @@ function render() {
   el('ledger').innerHTML = out.rows.map(r => `<tr><td>${r.day ? 'Maturity' : 'Opening'} <span class="event-tag">/ ${r.day}</span></td><td>${r.day ? r.rate.toFixed(2) + '%' : '—'}</td><td>${r.day ? tl(r.eligible) : '—'}</td><td>${r.day ? tl(r.gross) : '—'}</td><td>${r.day ? tl(r.tax) : '—'}</td><td>${r.day ? tl(r.net) : '—'}</td><td>${tl(r.balance)}</td></tr>`).join('') + `<tr class="exit-row"><td>Exit <span class="event-tag">/ ${p.days}</span></td><td>—</td><td>—</td><td>0.00</td><td>0.00</td><td>0.00</td><td>${tl(out.finalTry)}</td></tr>`;
   chart(p, out);
 }
-function edited() { el('copyStatus').textContent = ''; render(); }
+function edited() { el('copyStatus').textContent = ''; render(); banks?.update(true); }
 ids.forEach(key => el(key).addEventListener(el(key).type === 'checkbox' || el(key).tagName === 'SELECT' ? 'change' : 'input', edited));
 el('assumptions').addEventListener('submit', e => e.preventDefault());
 document.querySelectorAll('[data-days]').forEach(button => button.addEventListener('click', () => { el('days').value = button.dataset.days; edited(); }));
@@ -93,7 +94,7 @@ el('share').addEventListener('click', async () => {
 el('reset').addEventListener('click', () => {
   setInputs(defaults); document.querySelector('.advanced').open = false;
   history.replaceState(null, '', location.pathname); el('urlWarning').hidden = true;
-  render(); el('copyStatus').textContent = 'Illustrative defaults restored.';
+  render(); banks?.update(true); el('copyStatus').textContent = 'Illustrative defaults restored.';
 });
 el('example').addEventListener('click', () => {
   setInputs({ ...defaults, currency: 'TRY', capital: 1000000, days: 32, rate: 36, tax: 17.5, depr: 0, bid: 50, ask: 50 });
@@ -109,3 +110,5 @@ if (loaded.warnings.length) { el('urlWarning').hidden = false; el('urlWarning').
 render();
 
 window.addEventListener('resize', () => { if (current && outcome) chart(current, outcome); });
+
+banks = initBanks({getInputs:readInputs,apply:p=>{setInputs(p);render();}});

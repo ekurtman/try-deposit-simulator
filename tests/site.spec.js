@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { snapshot } from './bank-fixtures.js';
+test.beforeEach(async({page})=>{await page.route('**/api/bank-rates',route=>route.fulfill({json:snapshot()}));});
 test('loads without script errors and fits desktop/mobile viewports', async ({ page }, info) => {
   const errors=[]; page.on('pageerror',e=>errors.push(e.message));
   const response=await page.goto('/'); expect(response.status()).toBe(200);
@@ -84,4 +86,42 @@ test('narrow 320px screen keeps controls and tables within the page',async({page
   await page.setViewportSize({width:320,height:740}); await page.goto('/?promo=1&rateMode=declining');
   await expect(page.locator('#promoFields')).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('bank selector fills eligible rates and quotes without overwriting tax or FX assumptions',async({page})=>{
+  await page.goto('/?currency=TRY&capital=1000000&days=32&promo=1&rateMode=declining&depr=7&tax=12');
+  await expect(page.locator('#bankStatus')).toContainText('4 of 4');
+  await page.locator('#bankSelect').selectOption('enpara');
+  await expect(page.locator('#rate')).toHaveValue('36');await expect(page.locator('#bid')).toHaveValue('49.0975');await expect(page.locator('#ask')).toHaveValue('50.7975');
+  await expect(page.locator('#tax')).toHaveValue('12');await expect(page.locator('#depr')).toHaveValue('7');await expect(page.locator('#promo')).not.toBeChecked();await expect(page.locator('#rateMode')).toHaveValue('fixed');
+  await expect(page.locator('#bankApplied')).toContainText('Applied Enpara');
+  await page.locator('#capital').fill('500000');await expect(page.locator('#bankSelect')).toHaveValue('');await expect(page.locator('#bankApplied')).toContainText('Inputs edited');
+  await page.locator('#bankSelect').selectOption('enpara');await expect(page.locator('#rate')).toHaveValue('34.5');
+});
+test('comparison handles unsupported terms and failed sources without invented rankings',async({page})=>{
+  const data=snapshot();data.banks[0].fx.status='unavailable';await page.route('**/api/bank-rates',route=>route.fulfill({json:data}));
+  await page.goto('/?term=33');await expect(page.locator('#bankStatus')).toContainText('3 of 4');
+  await expect(page.locator('#bankRows tr').last()).toContainText('Official rates or FX quotes unavailable');
+  await expect(page.locator('#bankSelect option[value="enpara"]')).toBeDisabled();
+  await page.locator('#capital').fill('0');await expect(page.locator('#bankSelect')).toBeDisabled();
+});
+test('bank fetch failure and expired snapshots leave manual calculator usable',async({page})=>{
+  await page.route('**/api/bank-rates',route=>route.fulfill({status:503,json:{error:'unavailable'}}));
+  await page.goto('/');await expect(page.locator('#bankStatus')).toContainText('unavailable');await expect(page.locator('#finalUsd')).not.toHaveText('—');
+  await page.route('**/api/bank-rates',route=>route.fulfill({json:snapshot(Date.now()-400000)}));await page.locator('#refreshBanks').click();
+  await expect(page.locator('#bankStatus')).toContainText('expired');await expect(page.locator('#bankSelect')).toBeDisabled();
+});
+test('bank snapshot share link restores numbers without auto-applying newer bank data',async({page})=>{
+  await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text)=>{window.copiedLink=text;}}}));
+  await page.goto('/?currency=TRY&capital=1000000');await page.locator('#bankSelect').selectOption('ziraat');await page.locator('#share').click();
+  const url=await page.evaluate(()=>window.copiedLink);const data=snapshot();data.banks[3].fx.ask=60;
+  await page.route('**/api/bank-rates',route=>route.fulfill({json:data}));await page.goto(url);
+  await expect(page.locator('#ask')).toHaveValue('51.422');await expect(page.locator('#rate')).toHaveValue('31');await expect(page.locator('#bankSelect')).toHaveValue('');
+});
+test('refresh updates comparison without silently replacing applied assumptions',async({page})=>{
+  await page.goto('/?currency=TRY&capital=1000000');await page.locator('#bankSelect').selectOption('enpara');
+  const data=snapshot();data.banks[0].fx.ask=60;await page.route('**/api/bank-rates',route=>route.fulfill({json:data}));
+  await page.locator('#refreshBanks').click();await expect(page.locator('#bankStatus')).toContainText('4 of 4');
+  await expect(page.locator('#ask')).toHaveValue('50.7975');await expect(page.locator('#bankSelect')).toHaveValue('');
+  await page.locator('#bankSelect').selectOption('enpara');await expect(page.locator('#ask')).toHaveValue('60');
 });
