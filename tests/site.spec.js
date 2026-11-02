@@ -87,6 +87,10 @@ test('narrow 320px screen keeps controls and tables within the page',async({page
   await expect(page.locator('#promoFields')).toBeVisible();
   await expect(page.locator('#bankStatus')).toContainText('4 of 4');
   const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(n=>n.getBoundingClientRect().right>innerWidth&&!n.closest('.table-scroll')).map(n=>({tag:n.tagName,id:n.id,cls:n.className,right:n.getBoundingClientRect().right})).slice(0,12)}));
+  if(layout.width>layout.viewport) layout.isolation=await page.evaluate(()=>{
+    const selectors=['.bank-panel','.workspace','.intro','.ledger-panel','.methodology','footer','#bankSelect','.bank-table','.bank-picker','.bank-table thead','.bank-table caption'];
+    return selectors.map(selector=>{const n=document.querySelector(selector),previous=n.style.display;n.style.display='none';const width=document.documentElement.scrollWidth;n.style.display=previous;return {selector,width};});
+  });
   expect(layout.width,JSON.stringify(layout)).toBeLessThanOrEqual(layout.viewport);
 });
 

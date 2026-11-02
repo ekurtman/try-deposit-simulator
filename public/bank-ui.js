@@ -7,10 +7,10 @@ export function initBanks({getInputs,apply}) {
   function node(tag,text,className) { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if(className) n.className = className; return n; }
   function render() {
     rows = compareBanks(snapshot,getInputs());
-    el('bankSelect').replaceChildren(new Option('Manual assumptions / select a bank',''));
+    el('bankSelect').replaceChildren(new Option('Manual assumptions',''));
     el('bankRows').replaceChildren();
     for (const row of rows) {
-      const {bank} = row, option = new Option(`${bank.name}${row.reason ? ' — unavailable for this scenario' : ` — ${row.rate.toFixed(2)}%`}`,bank.id);
+      const {bank} = row, option = new Option(`${bank.name}${row.reason ? ' — unavailable' : ` — ${row.rate.toFixed(2)}%`}`,bank.id);
       option.disabled = Boolean(row.reason); el('bankSelect').append(option);
       const tr = node('tr');if(row.reason)tr.className='no-offer';
       tr.append(node('td',row.reason ? '—' : String(row.rank)));
