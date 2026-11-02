@@ -101,12 +101,12 @@ export function createRateService({fetcher = fetch, now = Date.now, timeout = 10
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     try {
       const response = await fetcher(url,{signal:controller.signal,redirect:'error',headers:{'User-Agent':'TRYDepositSimulator/1.0 (public rate comparison)','Accept':'text/html,application/json'}});
-      if (!response.ok) throw Error('Source unavailable');
+      if (!response.ok) throw Error(`Source HTTP ${response.status}`);
       let body = '', bytes = 0; const decoder = new TextDecoder();
       for await (const chunk of response.body) { bytes += chunk.byteLength; if (bytes > 1500000) throw Error('Source too large'); body += decoder.decode(chunk,{stream:true}); }
       body += decoder.decode();
       return {status:'ok',...parser(body),fetchedAt:new Date(now()).toISOString(),sourceUpdatedAt:null};
-    } catch { return {status:'unavailable',message:'The official source could not be fetched or its format changed.'}; }
+    } catch (error) { console.warn('Bank source unavailable', new URL(url).hostname, error.name, error.message); return {status:'unavailable',message:'The official source could not be fetched or its format changed.'}; }
     finally { clearTimeout(timer); }
   }
   return async function bankRates() {

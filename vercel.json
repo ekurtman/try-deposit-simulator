@@ -31,5 +31,8 @@
     "api/bank-rates.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "regions": [
+    "fra1"
+  ]
 }
