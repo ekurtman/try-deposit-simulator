@@ -85,7 +85,9 @@ test('zero capital and zero-day horizons stay readable without NaN',async({page}
 test('narrow 320px screen keeps controls and tables within the page',async({page})=>{
   await page.setViewportSize({width:320,height:740}); await page.goto('/?promo=1&rateMode=declining');
   await expect(page.locator('#promoFields')).toBeVisible();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await expect(page.locator('#bankStatus')).toContainText('4 of 4');
+  const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(n=>n.getBoundingClientRect().right>innerWidth&&!n.closest('.table-scroll')).map(n=>({tag:n.tagName,id:n.id,cls:n.className,right:n.getBoundingClientRect().right})).slice(0,12)}));
+  expect(layout.width,JSON.stringify(layout)).toBeLessThanOrEqual(layout.viewport);
 });
 
 test('bank selector fills eligible rates and quotes without overwriting tax or FX assumptions',async({page})=>{
